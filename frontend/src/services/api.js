@@ -123,4 +123,11 @@ export const notificacionService = {
   getEstadoNotificaciones: () => api.get('/notificaciones/estado'),
 }
 
+
+export const usuarioService = {
+  getDocentes: () => api.get('/auth/usuarios', { params: { rol: 'docente' } }),
+};
+
+
+
 export default api

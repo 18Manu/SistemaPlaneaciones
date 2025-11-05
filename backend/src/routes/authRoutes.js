@@ -6,7 +6,7 @@ import {
   actualizarPerfil,
   obtenerUsuarios
 } from '../controllers/authController.js';
-import { autenticar, esAdmin } from '../middlewares/auth.js';
+import { autenticar, esCoordinadorOAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -123,7 +123,7 @@ router.post('/registro', registrar);
  * @swagger
  * /api/auth/usuarios:
  *   get:
- *     summary: Obtener todos los usuarios (solo admin)
+ *     summary: Obtener todos los usuarios (solo admin o coordinador)
  *     tags: [Autenticación]
  *     security:
  *       - bearerAuth: []
@@ -133,11 +133,11 @@ router.post('/registro', registrar);
  *       401:
  *         description: No autorizado
  *       403:
- *         description: No tiene permisos de administrador
+ *         description: No tiene permisos de administrador o coordinador
  *       500:
  *         description: Error del servidor
  */
-router.get('/usuarios', autenticar, esAdmin, obtenerUsuarios);
+router.get('/usuarios', autenticar, esCoordinadorOAdmin, obtenerUsuarios);
 
 /**
  * @swagger

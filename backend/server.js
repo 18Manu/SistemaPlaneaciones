@@ -14,6 +14,8 @@ import evidenciaRoutes from './src/routes/evidenciaRoutes.js';
 import geolocalizacionRoutes from './src/routes/geolocalizacionRoutes.js';
 import reporteRoutes from './src/routes/reporteRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
+import usuarioRoutes from './routes/usuarioRoutes.js';
+
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,7 @@ initEmailService();
 // 🔌 Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api', usuarioRoutes); // 👈 agrega esto
 // MIDDLEWARE DE LOGGING - NUEVO
 app.use((req, res, next) => {
   console.log('📨 Request:', req.method, req.url);

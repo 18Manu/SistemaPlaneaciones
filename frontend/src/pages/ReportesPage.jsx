@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { reporteService } from '../services/api'
+import { reporteService, usuarioService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import '../styles/ReportesStyles.css'
 
@@ -8,25 +8,18 @@ const ReportesPage = () => {
   const [reporteProfesor, setReporteProfesor] = useState(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('institucional')
-  const [filters, setFilters] = useState({
-    ciclo: '',
-    profesor: ''
-  })
+  const [filters, setFilters] = useState({ ciclo: '', profesor: '' })
 
-  const { user, isCoordinador, isAdmin } = useAuth()
+  const { user, isCoordinador, isAdmin, token } = useAuth()
 
-  // Verificar permisos al cargar el componente
+  // 🔹 Cargar reporte institucional al montar o cambiar pestaña
   useEffect(() => {
-    if (!isCoordinador() && !isAdmin()) {
-      return
-    }
-
     if (activeTab === 'institucional') {
       loadReporteInstitucional()
     }
-  }, [activeTab, isCoordinador, isAdmin])
+  }, [activeTab])
 
-  // Si el usuario no tiene permisos, mostrar mensaje de no autorizado
+  // 🔹 Acceso restringido
   if (!isCoordinador() && !isAdmin()) {
     return (
       <div className="reportes-container">
@@ -41,10 +34,7 @@ const ReportesPage = () => {
             <p><strong>Tu rol actual:</strong> {user?.rol || 'Usuario'}</p>
             <p><strong>Roles permitidos:</strong> Coordinador, Administrador</p>
           </div>
-          <button
-            className="btn-primary"
-            onClick={() => window.history.back()}
-          >
+          <button className="btn-primary" onClick={() => window.history.back()}>
             Volver Atrás
           </button>
         </div>
@@ -52,26 +42,26 @@ const ReportesPage = () => {
     )
   }
 
+  // 🔹 Cargar reporte institucional
   const loadReporteInstitucional = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      setReporteInstitucional(null);
-
-      const response = await reporteService.getInstitucional(filters.ciclo);
-
+      setReporteInstitucional(null)
+      const response = await reporteService.getInstitucional(filters.ciclo)
       if (response?.data) {
-        setReporteInstitucional(response.data);
+        setReporteInstitucional(response.data)
       } else {
-        console.warn('⚠️ Respuesta vacía del backend');
+        console.warn('⚠️ Respuesta vacía del backend')
       }
     } catch (error) {
-      console.error('❌ Error cargando reporte institucional:', error);
-      alert('Ocurrió un error al cargar el reporte institucional.');
+      console.error('❌ Error cargando reporte institucional:', error)
+      alert('Ocurrió un error al cargar el reporte institucional.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
+  // 🔹 Cargar reporte por profesor
   const loadReporteProfesor = async () => {
     if (!filters.profesor) {
       alert('Por favor ingresa el nombre del profesor')
@@ -81,92 +71,64 @@ const ReportesPage = () => {
     setLoading(true)
     try {
       const response = await reporteService.getPorProfesor(filters.profesor, filters.ciclo)
-      setReporteProfesor(response.data)
+      setReporteProfesor(response?.data || null)
     } catch (error) {
-      console.error('Error cargando reporte por profesor:', error)
+      console.error('❌ Error cargando reporte por profesor:', error)
+      alert('No se pudo cargar el reporte del profesor.')
+      setReporteProfesor(null)
     } finally {
       setLoading(false)
     }
   }
 
-const handleExport = async (formato, tipo) => {
-  try {
-    if (!formato) return; // No exportar si no se selecciona formato
+  // 🔹 Exportar reportes
+  const handleExport = async (formato, tipo) => {
+    try {
+      if (!formato) return
 
-    const tipoNormalizado = tipo.toLowerCase().trim();
-    const mapaTipos = {
-      avances: 'avance',
-      evidencias: 'evidencia',
-      planeaciones: 'planeacion',
-      profesor: 'profesor'
-    };
-    const tipoFinal = mapaTipos[tipoNormalizado] || tipoNormalizado;
+      const tipoNormalizado = tipo.toLowerCase().trim()
+      const mapaTipos = {
+        avances: 'avance',
+        evidencias: 'evidencia',
+        planeaciones: 'planeacion',
+        profesor: 'profesor'
+      }
+      const tipoFinal = mapaTipos[tipoNormalizado] || tipoNormalizado
 
-    if (tipoFinal === 'profesor' && !filters.profesor) {
-      alert('Por favor ingresa el nombre del profesor antes de exportar.');
-      return;
+      if (tipoFinal === 'profesor' && !filters.profesor) {
+        alert('Por favor ingresa el nombre del profesor antes de exportar.')
+        return
+      }
+
+      const params = { tipo: tipoFinal, formato }
+      if (filters.ciclo) params.ciclo = filters.ciclo
+      if (tipoFinal === 'profesor') params.profesor = filters.profesor
+
+      const response = await reporteService.exportar(params)
+
+      if (response.data instanceof Blob && response.data.type === 'application/json') {
+        const text = await response.data.text()
+        const json = JSON.parse(text)
+        alert(json.message || 'No hay datos disponibles.')
+        return
+      }
+
+      const nombreArchivo = `reporte-${tipoFinal}-${filters.ciclo || 'general'}.${formato === 'excel' ? 'xlsx' : 'pdf'}`
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', nombreArchivo)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error al exportar reporte:', error)
+      alert('Error al exportar reporte.')
     }
-
-    // Construir parámetros solo si tienen valor
-    const params = { tipo: tipoFinal, formato };
-    if (filters.ciclo) params.ciclo = filters.ciclo;
-    if (tipoFinal === 'profesor') params.profesor = filters.profesor;
-
-    const response = await reporteService.exportar(params);
-
-    // Si el backend devuelve un JSON (sin datos)
-    if (response.data instanceof Blob && response.data.type === 'application/json') {
-      const text = await response.data.text();
-      const json = JSON.parse(text);
-      alert(json.message || 'No hay datos disponibles.');
-      return;
-    }
-
-    // Descargar el archivo
-    const nombreArchivo = `reporte-${tipoFinal}-${filters.ciclo || 'general'}.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', nombreArchivo);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-  } catch (error) {
-    console.error('Error al exportar reporte:', error);
-    alert('Error al exportar reporte.');
   }
-};
 
-
-
-  const renderMetricCard = (title, value, subtitle, color = '#3498db') => (
-    <div className="metric-card">
-      <div className="metric-value" style={{ color }}>{value}</div>
-      <div className="metric-title">{title}</div>
-      <div className="metric-subtitle">{subtitle}</div>
-    </div>
-  )
-
-  const renderProgressBar = (percentage, label, color = '#3498db') => (
-    <div className="progress-container">
-      <div className="progress-label">
-        <span>{label}</span>
-        <span>{percentage}%</span>
-      </div>
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{
-            width: `${percentage}%`,
-            backgroundColor: color
-          }}
-        ></div>
-      </div>
-    </div>
-  )
-
+  // 🔹 Render principal
   return (
     <div className="reportes-container">
       <header className="reportes-header">
@@ -174,8 +136,7 @@ const handleExport = async (formato, tipo) => {
         <p>
           {isAdmin()
             ? 'Panel completo de análisis y estadísticas del sistema académico'
-            : 'Análisis y estadísticas académicas - Vista de coordinador'
-          }
+            : 'Análisis y estadísticas académicas - Vista de coordinador'}
         </p>
         <div className="user-role-badge">
           {isAdmin() ? 'Administrador' : 'Coordinador'}
@@ -185,7 +146,6 @@ const handleExport = async (formato, tipo) => {
       {/* Filtros y controles */}
       <div className="filters-card">
         <div className="filters-content">
-          {/* Selector de pestañas */}
           <div className="tab-selector">
             <button
               onClick={() => setActiveTab('institucional')}
@@ -202,7 +162,6 @@ const handleExport = async (formato, tipo) => {
           </div>
 
           <div className="filters-grid">
-            {/* Filtros comunes */}
             <input
               type="text"
               placeholder="Ciclo escolar (ej. 2024-2025)"
@@ -211,7 +170,6 @@ const handleExport = async (formato, tipo) => {
               className="filter-input"
             />
 
-            {/* Filtro específico para reporte por profesor */}
             {activeTab === 'profesor' && (
               <input
                 type="text"
@@ -222,10 +180,13 @@ const handleExport = async (formato, tipo) => {
               />
             )}
 
-            {/* Botones de acción */}
             <div className="actions-group">
               <button
-                onClick={() => activeTab === 'institucional' ? loadReporteInstitucional() : loadReporteProfesor()}
+                onClick={() =>
+                  activeTab === 'institucional'
+                    ? loadReporteInstitucional()
+                    : loadReporteProfesor()
+                }
                 className="btn-primary"
               >
                 🔄 Actualizar
@@ -244,6 +205,7 @@ const handleExport = async (formato, tipo) => {
         </div>
       </div>
 
+      {/* Estado de carga */}
       {loading && (
         <div className="loading-state">
           <div className="loading-spinner"></div>
@@ -251,290 +213,37 @@ const handleExport = async (formato, tipo) => {
         </div>
       )}
 
-      {/* Reporte Institucional */}
+      {/* 🔹 Mostrar reporte institucional */}
       {!loading && activeTab === 'institucional' && reporteInstitucional && (
-        <div className="reporte-content">
-          {/* Encabezado del reporte */}
-          <div className="reporte-header">
-            <div className="header-info">
-              <h2>🏫 Reporte Institucional</h2>
-              <p>
-                Período: {reporteInstitucional.periodo} |
-                Generado: {new Date(reporteInstitucional.fechaGeneracion).toLocaleDateString()}
-              </p>
+        <div className="reporte-institucional">
+          {Object.entries(reporteInstitucional).map(([nombreDocente, datos]) => (
+            <div key={nombreDocente} className="docente-section">
+              <h2>👨‍🏫 {nombreDocente}</h2>
+              <p><strong>Planeaciones:</strong> {datos.totalPlaneaciones || 0}</p>
+              <p><strong>Avances:</strong> {datos.totalAvances || 0}</p>
+              <p><strong>Evidencias:</strong> {datos.totalEvidencias || 0}</p>
+              <hr />
             </div>
-            <div className="header-badge">
-              {reporteInstitucional.resumenGeneral.totalProfesores} PROFESORES
-            </div>
-          </div>
-
-          {/* Métricas principales */}
-          <div className="metrics-grid">
-            {renderMetricCard(
-              'Planeaciones',
-              reporteInstitucional.resumenGeneral.totalPlaneaciones,
-              'Total registradas',
-              '#e74c3c'
-            )}
-            {renderMetricCard(
-              'Avances',
-              reporteInstitucional.resumenGeneral.totalAvances,
-              'Seguimientos',
-              '#3498db'
-            )}
-            {renderMetricCard(
-              'Evidencias',
-              reporteInstitucional.resumenGeneral.totalEvidencias,
-              'Cursos y talleres',
-              '#9b59b6'
-            )}
-            {renderMetricCard(
-              'Horas Capacitación',
-              reporteInstitucional.capacitacionDocente.totalHorasAcreditadas,
-              'Total acreditadas',
-              '#27ae60'
-            )}
-          </div>
-
-          {/* Estadísticas detalladas */}
-          <div className="stats-grid">
-            {/* Planeaciones */}
-            <div className="stat-card">
-              <h3>📋 Planeaciones</h3>
-              {renderProgressBar(
-                reporteInstitucional.planeaciones.porcentajeAprobacion,
-                'Tasa de Aprobación',
-                '#27ae60'
-              )}
-              <div className="stats-details">
-                <div className="stat-item">
-                  <span>Aprobadas:</span>
-                  <strong>{reporteInstitucional.planeaciones.aprobadas}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Pendientes:</span>
-                  <strong>{reporteInstitucional.planeaciones.pendientes}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Rechazadas:</span>
-                  <strong>{reporteInstitucional.planeaciones.rechazadas}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Ajustes:</span>
-                  <strong>{reporteInstitucional.planeaciones.ajustesSolicitados}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Avances */}
-            <div className="stat-card">
-              <h3>📊 Avances</h3>
-              {renderProgressBar(
-                reporteInstitucional.avances.porcentajeCumplimiento,
-                'Cumplimiento General',
-                '#3498db'
-              )}
-              <div className="stats-details">
-                <div className="stat-item">
-                  <span>Cumplidos:</span>
-                  <strong>{reporteInstitucional.avances.cumplido}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Parciales:</span>
-                  <strong>{reporteInstitucional.avances.parcial}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>No cumplidos:</span>
-                  <strong>{reporteInstitucional.avances.noCumplido}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Promedio:</span>
-                  <strong>{reporteInstitucional.avances.porcentajePromedio}%</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Capacitación */}
-            <div className="stat-card">
-              <h3>🎓 Capacitación</h3>
-              <div className="progress-container">
-                <div className="progress-label">
-                  <span>Validación de Evidencias</span>
-                  <span>{((reporteInstitucional.capacitacionDocente.cursosValidadas / reporteInstitucional.capacitacionDocente.totalCursos) * 100).toFixed(1)}%</span>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${(reporteInstitucional.capacitacionDocente.cursosValidadas / reporteInstitucional.capacitacionDocente.totalCursos) * 100}%`,
-                      backgroundColor: '#9b59b6'
-                    }}
-                  ></div>
-                </div>
-              </div>
-              <div className="stats-details">
-                <div className="stat-item">
-                  <span>Validadas:</span>
-                  <strong>{reporteInstitucional.capacitacionDocente.cursosValidadas}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Pendientes:</span>
-                  <strong>{reporteInstitucional.capacitacionDocente.cursosPendientes}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Rechazadas:</span>
-                  <strong>{reporteInstitucional.capacitacionDocente.cursosRechazadas}</strong>
-                </div>
-                <div className="stat-item">
-                  <span>Promedio:</span>
-                  <strong>{reporteInstitucional.capacitacionDocente.promedioHorasPorProfesor}h</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Distribución por parcial */}
-          <div className="distribution-card">
-            <h3>📅 Distribución por Parcial</h3>
-            <div className="distribution-grid">
-              {[1, 2, 3].map(parcial => (
-                <div key={parcial} className="period-card">
-                  <div className="period-title">Parcial {parcial}</div>
-                  <div className="period-stats">
-                    <div className="period-stat">
-                      <div className="stat-value" style={{ color: '#e74c3c' }}>
-                        {reporteInstitucional.porParcial[parcial]?.planeaciones || 0}
-                      </div>
-                      <div className="stat-label">Planeaciones</div>
-                    </div>
-                    <div className="period-stat">
-                      <div className="stat-value" style={{ color: '#3498db' }}>
-                        {reporteInstitucional.porParcial[parcial]?.avances || 0}
-                      </div>
-                      <div className="stat-label">Avances</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Reporte por Profesor */}
+      {/* 🔹 Mostrar reporte por profesor */}
       {!loading && activeTab === 'profesor' && reporteProfesor && (
-        <div className="reporte-content">
-          {/* Encabezado del reporte */}
-          <div className="reporte-header">
-            <div className="header-info">
-              <h2>👨‍🏫 Reporte del Profesor: {reporteProfesor.profesor}</h2>
-              <p>
-                Período: {reporteProfesor.periodo} |
-                Generado: {new Date(reporteProfesor.fechaGeneracion).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="header-badge profesor-badge">
-              {reporteProfesor.resumen.avancesRegistrados} AVANCES
-            </div>
-          </div>
-
-          {/* Resumen general */}
-          <div className="metrics-grid">
-            {renderMetricCard(
-              'Planeaciones',
-              reporteProfesor.resumen.planeacionesRegistradas,
-              'Registradas',
-              '#e74c3c'
-            )}
-            {renderMetricCard(
-              'Avances',
-              reporteProfesor.resumen.avancesRegistrados,
-              'Registrados',
-              '#3498db'
-            )}
-            {renderMetricCard(
-              'Cursos',
-              reporteProfesor.resumen.cursosTomados,
-              'Tomados',
-              '#9b59b6'
-            )}
-            {renderMetricCard(
-              'Horas',
-              reporteProfesor.detalleCapacitacion.totalHoras,
-              'Capacitación',
-              '#27ae60'
-            )}
-          </div>
-
-          {/* Detalles por área */}
-          <div className="details-grid">
-            {/* Planeaciones */}
-            <div className="detail-card">
-              <h3>📋 Planeaciones</h3>
-              <div className="detail-list">
-                {Object.entries(reporteProfesor.detallePlaneaciones.porEstado).map(([estado, count]) => (
-                  <div key={estado} className="detail-item">
-                    <span className="detail-label">{estado.replace('_', ' ')}</span>
-                    <strong className="detail-value">{count}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Avances */}
-            <div className="detail-card">
-              <h3>📊 Avances</h3>
-              <div className="detail-list">
-                {Object.entries(reporteProfesor.detalleAvances.porCumplimiento).map(([cumplimiento, count]) => (
-                  <div key={cumplimiento} className="detail-item">
-                    <span className="detail-label">{cumplimiento}</span>
-                    <strong className="detail-value">{count}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="promedio-section">
-                <strong>Promedio: {reporteProfesor.detalleAvances.porcentajePromedio}%</strong>
-              </div>
-            </div>
-
-            {/* Capacitación */}
-            <div className="detail-card">
-              <h3>🎓 Capacitación</h3>
-              <div className="capacitacion-details">
-                <div className="capacitacion-section">
-                  <strong>Por Tipo:</strong>
-                  {Object.entries(reporteProfesor.detalleCapacitacion.porTipo).map(([tipo, count]) => (
-                    <div key={tipo} className="capacitacion-item">
-                      <span className="capacitacion-label">{tipo}</span>
-                      <strong className="capacitacion-value">{count}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div className="capacitacion-section">
-                  <strong>Por Institución:</strong>
-                  {Object.entries(reporteProfesor.detalleCapacitacion.porInstitucion).map(([institucion, count]) => (
-                    <div key={institucion} className="capacitacion-item">
-                      <span className="capacitacion-label">{institucion}</span>
-                      <strong className="capacitacion-value">{count}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="reporte-profesor">
+          <h2>👨‍🏫 {reporteProfesor.nombre}</h2>
+          <p><strong>Total Planeaciones:</strong> {reporteProfesor.totalPlaneaciones}</p>
+          <p><strong>Total Avances:</strong> {reporteProfesor.totalAvances}</p>
+          <p><strong>Total Evidencias:</strong> {reporteProfesor.totalEvidencias}</p>
         </div>
       )}
 
-      {/* Estado vacío */}
       {!loading && activeTab === 'profesor' && !reporteProfesor && (
         <div className="empty-state">
           <div className="empty-icon">👨‍🏫</div>
           <h3>Reporte por Profesor</h3>
-          <p>Ingresa el nombre del profesor y haz clic en "Actualizar" para generar el reporte</p>
-          <button
-            onClick={loadReporteProfesor}
-            className="btn-primary"
-          >
+          <p>Ingresa un nombre y haz clic en "Actualizar" para generar el reporte</p>
+          <button onClick={loadReporteProfesor} className="btn-primary">
             Generar Reporte
           </button>
         </div>

@@ -2,7 +2,6 @@
 ### Sistema de Gestión de Planeación Didáctica  
 **Versión:** 1.0.0  
 **Autores:**  
-- Ing. Andrea Palomares  
 - Ing. Manuel Mata   
 **Fecha:** Octubre 2025  
 
@@ -93,10 +92,8 @@ Este manual tiene como objetivo guiar al usuario en el uso del sistema, desde el
 ---
 
 ## 8. Soporte Técnico
-- **Correos:** 
+- **Correos:** josemanuel.mata.h@gmail.com
 
-    josemanuel.mata.h@gmail.com
-palomaresschoenstantt@gmail.com
 - **Responsables:** Andrea Palomares y Manuel Mata 
 - **Horario:** Lunes a Viernes, 9:00–18:00 hrs
 
@@ -105,7 +102,6 @@ palomaresschoenstantt@gmail.com
 ## 9. Créditos
 | Rol | Nombre | Contribución |
 |------|--------|---------------|
-| Desarrollador | Andrea Palomares | Backend y frontend, Seguridad, despliegue y documentación |
 | Desarrollador | Manuel Mata | Backend y frontend, Seguridad, despliegue y documentación |
 | Área académica | Gestión de Planeación | Validación funcional |
 
@@ -114,7 +110,7 @@ palomaresschoenstantt@gmail.com
 ## 11. Control de Versiones
 | Versión | Fecha | Descripción |
 |----------|--------|-------------|
-| 1.0.0 | 29/10/2025 | Versión inicial y estable |
+| 1.0.0 | --/11/2025 | Versión inicial y estable |
 
 ---
 

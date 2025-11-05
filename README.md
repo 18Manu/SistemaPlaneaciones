@@ -47,5 +47,4 @@ npm run dev
 ##Equipo
 | Nombre           | Rol                |
 | ---------------- | ------------------ |
-| Andrea Palomares | Frontend & Backend |
 | Manuel           | Frontend & Backend |

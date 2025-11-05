@@ -14,7 +14,7 @@ import evidenciaRoutes from './src/routes/evidenciaRoutes.js';
 import geolocalizacionRoutes from './src/routes/geolocalizacionRoutes.js';
 import reporteRoutes from './src/routes/reporteRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
-import usuarioRoutes from './routes/usuarioRoutes.js';
+import usuarioRoutes from './src/routes/usuarioRoutes.js';
 
 
 dotenv.config();

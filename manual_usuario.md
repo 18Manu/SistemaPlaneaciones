@@ -94,7 +94,7 @@ Este manual tiene como objetivo guiar al usuario en el uso del sistema, desde el
 ## 8. Soporte Técnico
 - **Correos:** josemanuel.mata.h@gmail.com
 
-- **Responsables:** Andrea Palomares y Manuel Mata 
+- **Responsables:** Manuel Mata 
 - **Horario:** Lunes a Viernes, 9:00–18:00 hrs
 
 ---

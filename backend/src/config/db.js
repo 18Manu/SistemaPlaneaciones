@@ -1,19 +1,16 @@
-// backend/config/db.js
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import EventEmitter from 'events'; // 🔹 Para implementar el patrón Observer
+import EventEmitter from 'events'; 
 
 dotenv.config();
 
-// 🔹 Instancia Singleton de conexión
+
 let connection = null;
 
-// 🔹 Emisor de eventos (Observer Pattern)
+
 export const dbEvents = new EventEmitter();
 
-/**
- * Conecta a MongoDB (Singleton + Observer)
- */
+
 export const connectDB = async () => {
   try {
     if (connection) {
@@ -25,7 +22,7 @@ export const connectDB = async () => {
       throw new Error('MONGODB_URI no está definida en las variables de entorno');
     }
 
-    // 🔹 Crear la conexión una sola vez
+    //  Crear la conexión una sola vez
     connection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -33,10 +30,10 @@ export const connectDB = async () => {
 
     console.log(` MongoDB conectado: ${connection.connection.host}`);
 
-    // 🔹 Emitir evento “connected”
+    //  Emitir evento “connected”
     dbEvents.emit('connected', connection.connection.host);
 
-    // 🔹 Escuchar eventos internos de Mongoose
+    //  Escuchar eventos internos de Mongoose
     mongoose.connection.on('disconnected', () => {
       console.warn(' MongoDB desconectado');
       dbEvents.emit('disconnected');
@@ -50,7 +47,7 @@ export const connectDB = async () => {
     return connection;
   } catch (error) {
     console.error(' Error al conectar MongoDB:', error.message);
-    dbEvents.emit('error', error); // 🔹 Notificar el error
+    dbEvents.emit('error', error); // Notificar el error
     process.exit(1);
   }
 };

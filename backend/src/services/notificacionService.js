@@ -36,7 +36,7 @@ class NotificacionService {
         html: contenidoHTML
       };
 
-      console.log('📧 Intentando enviar email con configuración:', {
+      console.log(' Intentando enviar email con configuración:', {
         from: `${this.fromName} <${this.fromEmail}>`,
         to: destinatario,
         subject: asunto,
@@ -44,11 +44,11 @@ class NotificacionService {
       });
 
       const response = await sgMail.send(msg);
-      console.log(`✅ Email enviado exitosamente a: ${destinatario}`);
+      console.log(` Email enviado exitosamente a: ${destinatario}`);
       return { success: true, response };
       
     } catch (error) {
-      console.error('❌ Error detallado enviando email:');
+      console.error(' Error detallado enviando email:');
       console.error('Código:', error.code);
       console.error('Mensaje:', error.message);
       
@@ -85,7 +85,7 @@ class NotificacionService {
     const destinatario = 'josemanuel.mata.h@gmail.com'; // Temporal para testing
     const estadoTexto = estado === 'aprobado' ? 'APROBADA' : 'RECHAZADA';
     
-    const asunto = `🚀 Planeación ${estadoTexto} - ${planeacion.materia}`;
+    const asunto = ` Planeación ${estadoTexto} - ${planeacion.materia}`;
     
     const contenidoHTML = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -131,7 +131,7 @@ class NotificacionService {
   // Recordatorio de avances pendientes
   async enviarRecordatorioAvance(profesor, email, avancesPendientes) {
     // Temporal: usar siempre tu email para testing
-    const emailDestino = 'josemanuel.mata.h@gmail.com';
+    const emailDestino = 'josemanuel.mata.h@gmail.com ';
     
     const asunto = `⏰ Recordatorio - Avances Pendientes`;
     
@@ -172,7 +172,7 @@ class NotificacionService {
 
   // Notificación de evidencia validada
   async notificarValidacionEvidencia(evidencia, estado, observaciones = '') {
-    const destinatario = 'josemanuel.mata.h@gmail.com'; // Temporal para testing
+    const destinatario = 'josemanuel.mata.h@gmail.com '; // Temporal para testing
     const estadoTexto = estado === 'validada' ? 'VALIDADA' : 'RECHAZADA';
     
     const asunto = `📋 Evidencia ${estadoTexto} - ${evidencia.nombreCurso}`;
@@ -222,7 +222,7 @@ class NotificacionService {
   // Alertas del sistema para coordinadores
   async enviarAlertaCoordinadores(asunto, mensaje, datosAdicionales = {}) {
     // Temporal: usar tu email para testing
-    const coordinadores = ['josemanuel.mata.h@gmail.com'];
+    const coordinadores = ['josemanuel.mata.h@gmail.com '];
     
     const contenidoHTML = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -280,7 +280,7 @@ ${JSON.stringify(datosAdicionales, null, 2)}
 
     try {
       const testMsg = {
-        to: 'josemanuel.mata.h@gmail.com',
+        to: 'josemanuel.mata.h@gmail.com ',
         from: {
           email: this.fromEmail,
           name: this.fromName

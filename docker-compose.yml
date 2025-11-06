@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   mongo:
     image: mongo:7
@@ -6,11 +8,19 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo-data:/data/db
+
   app:
-    image: planeacion/miapp:1.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
-      MONGO_URI: mongodb://admin:admin123@mongo:27017
+      MONGO_URI: mongodb://admin:admin123@mongo:27017/planeacion?authSource=admin
     depends_on:
       - mongo
     ports:
       - "4000:4000"
+
+volumes:
+  mongo-data:

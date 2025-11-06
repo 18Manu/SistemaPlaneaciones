@@ -22,4 +22,4 @@ export const connectDB = async () => {
   }
 };
 
-//Prueba del Workflow
+//Agregar el singleton de los patrones d ediseño

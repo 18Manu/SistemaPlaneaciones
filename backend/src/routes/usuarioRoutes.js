@@ -1,6 +1,6 @@
 import express from 'express';
 import { obtenerUsuarios } from '../controllers/usuarioController.js';
-import { autenticar } from '../controllers/authController.js';
+import { autenticar, esCoordinadorOAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -10,6 +10,5 @@ const router = express.Router();
  * Protegida: requiere token válido (autenticar)
  */
 router.get('/usuarios', autenticar, esCoordinadorOAdmin, obtenerUsuarios);
-
 
 export default router;

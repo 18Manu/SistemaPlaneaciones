@@ -36,7 +36,7 @@ class NotificacionService {
         html: contenidoHTML
       };
 
-      console.log('📧 Intentando enviar email con configuración:', {
+      console.log(' Intentando enviar email con configuración:', {
         from: `${this.fromName} <${this.fromEmail}>`,
         to: destinatario,
         subject: asunto,
@@ -44,11 +44,11 @@ class NotificacionService {
       });
 
       const response = await sgMail.send(msg);
-      console.log(`✅ Email enviado exitosamente a: ${destinatario}`);
+      console.log(` Email enviado exitosamente a: ${destinatario}`);
       return { success: true, response };
       
     } catch (error) {
-      console.error('❌ Error detallado enviando email:');
+      console.error(' Error detallado enviando email:');
       console.error('Código:', error.code);
       console.error('Mensaje:', error.message);
       
@@ -85,7 +85,7 @@ class NotificacionService {
     const destinatario = 'josemanuel.mata.h@gmail.com'; // Temporal para testing
     const estadoTexto = estado === 'aprobado' ? 'APROBADA' : 'RECHAZADA';
     
-    const asunto = `🚀 Planeación ${estadoTexto} - ${planeacion.materia}`;
+    const asunto = ` Planeación ${estadoTexto} - ${planeacion.materia}`;
     
     const contenidoHTML = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

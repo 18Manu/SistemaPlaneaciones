@@ -1,6 +1,6 @@
 import express from 'express';
 import { obtenerUsuarios } from '../controllers/usuarioController.js';
-import { autenticar, esCoordinadorOAdmin } from '../middlewares/authMiddleware.js';
+import { autenticar, esCoordinadorOAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 

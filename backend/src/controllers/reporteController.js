@@ -109,28 +109,16 @@ export const obtenerReportePorProfesor = async (req, res) => {
     ]);
 
     const reporte = {
+      tipo: 'profesor',
       profesor,
       periodo: ciclo || 'Todos los ciclos',
       fechaGeneracion: new Date().toISOString(),
-      resumen: {
-        planeacionesRegistradas: planeaciones.length,
-        avancesRegistrados: avances.length,
-        cursosTomados: evidencias.length,
-      },
-      detallePlaneaciones: {
-        porEstado: planeaciones.reduce((acc, p) => {
-          acc[p.estado] = (acc[p.estado] || 0) + 1;
-          return acc;
-        }, {}),
-      },
-      detalleAvances: {
-        porcentajePromedio: avances.length
-          ? (avances.reduce((acc, a) => acc + a.porcentajeAvance, 0) / avances.length).toFixed(2)
-          : 0,
-      },
-      detalleCapacitacion: {
-        totalHoras: evidencias.reduce((acc, e) => acc + e.horasAcreditadas, 0),
-      },
+      planeaciones: planeaciones.length,
+      avances: avances.length,
+      evidencias: evidencias.length,
+      promedioAvance: avances.length
+        ? (avances.reduce((acc, a) => acc + a.porcentajeAvance, 0) / avances.length).toFixed(2)
+        : 0,
     };
 
     res.json(reporte);
@@ -270,99 +258,181 @@ async function obtenerDatosProfesor(profesor, ciclo) {
   };
 }
 
-// ===============================
-// EXPORTADOR CON DISEÑO PROFESIONAL
-// ===============================
 async function generarArchivo(formato, res, data, nombre, ciclo) {
   if (!data || (Array.isArray(data) && data.length === 0)) {
     return res.status(404).json({ message: 'No hay datos para exportar.' });
   }
 
-  // 🔹 PDF con separación por docente
+  // 🎨 Colores personalizados
+  const colorPrimario = '#8E7CC3'; // Lila
+  const colorSecundario = '#6AD7A8'; // Verde menta
+  const colorTexto = '#333333';
+
+  // ==========================================
+  // 🔹 EXPORTAR EN PDF (DISEÑO PROFESIONAL)
+  // ==========================================
   if (formato === 'pdf') {
     const doc = new PDFDocument({ margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${nombre}.pdf`);
     doc.pipe(res);
 
-    // Encabezado general
-    doc.rect(0, 0, doc.page.width, 80).fill('#003366');
-    doc.fillColor('white').fontSize(22).text('REPORTE INSTITUCIONAL', 0, 25, { align: 'center' });
+    // 🔸 Encabezado visual
+    doc.rect(0, 0, doc.page.width, 80).fill(colorPrimario);
+    doc.fillColor('white').fontSize(22).text(
+      nombre.replace(/-/g, ' ').toUpperCase(),
+      0,
+      30,
+      { align: 'center' }
+    );
+
     doc.moveDown(3);
-    doc.fillColor('#000').fontSize(12);
-    doc.text(`Periodo: ${data.periodo}`);
-    doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`);
+    doc.fillColor(colorTexto).fontSize(12);
+    doc.text(`📅 Periodo: ${data.periodo || ciclo || 'General'}`);
+    doc.text(`🗓️ Fecha de generación: ${new Date().toLocaleDateString()}`);
     doc.moveDown(2);
 
-    // Resumen general
-    doc.fillColor('#003366').fontSize(16).text('Resumen General', { underline: true });
-    doc.moveDown(1);
-    Object.entries(data.resumenGeneral).forEach(([k, v]) => doc.fillColor('#000').text(`${k}: ${v}`));
-    doc.moveDown(1.5);
-    Object.entries(data.totales).forEach(([k, v]) => doc.fillColor('#000').text(`${k}: ${v}`));
-
-    // 🔸 Página por docente
-    data.docentes.forEach((prof, idx) => {
-      doc.addPage();
-
-      doc.rect(0, 0, doc.page.width, 70).fill('#003366');
-      doc.fillColor('white').fontSize(20).text(`Profesor: ${prof.profesor}`, 50, 25);
-      doc.moveDown(3);
-
-      doc.fillColor('#000').fontSize(12).text('📘 Planeaciones:', { underline: true });
-      Object.entries(prof.planeacionesPorEstado || {}).forEach(([estado, cantidad]) => {
-        doc.text(`• ${estado}: ${cantidad}`);
-      });
+    // ==========================================
+    // 📘 REPORTE INSTITUCIONAL
+    // ==========================================
+    if (data.tipo === 'institucional') {
+      doc.fillColor(colorSecundario).fontSize(16).text('📊 Resumen General', { underline: true });
       doc.moveDown(1);
 
-      doc.fillColor('#000').text('📈 Avances:', { underline: true });
-      doc.text(`Total: ${prof.totalAvances}`);
-      doc.text(`Promedio: ${prof.promedioAvance}%`);
-      Object.entries(prof.cumplimientoAvances || {}).forEach(([estado, cantidad]) => {
-        doc.text(`• ${estado}: ${cantidad}`);
+      Object.entries(data.resumenGeneral || {}).forEach(([k, v]) => {
+        doc.fillColor(colorTexto).fontSize(12).text(`• ${k}: ${v}`);
       });
-      doc.moveDown(1);
 
-      doc.fillColor('#000').text('🎓 Evidencias:', { underline: true });
-      doc.text(`Total: ${prof.totalEvidencias}`);
-      doc.text(`Validadas: ${prof.evidenciasValidadas}`);
-      doc.text(`Horas capacitación: ${prof.horasCapacitacion}`);
       doc.moveDown(1.5);
-    });
+      doc.fillColor(colorSecundario).fontSize(16).text('📈 Totales', { underline: true });
+      doc.moveDown(1);
+      Object.entries(data.totales || {}).forEach(([k, v]) => {
+        doc.fillColor(colorTexto).fontSize(12).text(`• ${k}: ${v}`);
+      });
+
+      // 🔹 Docentes con secciones separadas
+      data.docentes?.forEach((prof) => {
+        doc.addPage();
+        doc.rect(0, 0, doc.page.width, 70).fill(colorPrimario);
+        doc.fillColor('white').fontSize(20).text(`👨‍🏫 ${prof.profesor}`, 50, 25);
+
+        doc.moveDown(3);
+        doc.fillColor(colorSecundario).fontSize(14).text('📘 Planeaciones', { underline: true });
+        Object.entries(prof.planeacionesPorEstado || {}).forEach(([estado, cantidad]) =>
+          doc.fillColor(colorTexto).text(`• ${estado}: ${cantidad}`)
+        );
+
+        doc.moveDown(1);
+        doc.fillColor(colorSecundario).text('📈 Avances', { underline: true });
+        doc.fillColor(colorTexto)
+          .text(`Total: ${prof.totalAvances}`)
+          .text(`Promedio: ${prof.promedioAvance}%`);
+        Object.entries(prof.cumplimientoAvances || {}).forEach(([estado, cantidad]) =>
+          doc.text(`• ${estado}: ${cantidad}`)
+        );
+
+        doc.moveDown(1);
+        doc.fillColor(colorSecundario).text('🎓 Evidencias', { underline: true });
+        doc.fillColor(colorTexto)
+          .text(`Total: ${prof.totalEvidencias}`)
+          .text(`Validadas: ${prof.evidenciasValidadas}`)
+          .text(`Horas capacitación: ${prof.horasCapacitacion}`);
+      });
+    }
+
+    // ==========================================
+    // 👨‍🏫 REPORTE INDIVIDUAL POR PROFESOR
+    // ==========================================
+    else if (data.tipo === 'profesor') {
+      doc.rect(0, 130, doc.page.width - 100, 2).fill(colorSecundario);
+      doc.moveDown(2);
+
+      doc.fillColor(colorPrimario).fontSize(18).text(`👨‍🏫 Reporte del Profesor`, { align: 'center' });
+      doc.fillColor(colorTexto).fontSize(22).text(`${data.profesor}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // 🔸 Bloques de datos visuales
+      const startY = doc.y;
+      const boxWidth = 230;
+      const boxHeight = 45;
+      const margin = 35;
+
+      const cajas = [
+        { titulo: 'Planeaciones', valor: data.planeaciones },
+        { titulo: 'Avances', valor: data.avances },
+        { titulo: 'Evidencias', valor: data.evidencias },
+        { titulo: 'Promedio Avance', valor: `${data.promedioAvance}%` },
+      ];
+
+      cajas.forEach((box, i) => {
+        const x = 60 + (i % 2) * (boxWidth + margin);
+        const y = startY + Math.floor(i / 2) * (boxHeight + 25);
+
+        doc.rect(x, y, boxWidth, boxHeight)
+          .fill(i % 2 === 0 ? colorSecundario : colorPrimario);
+
+        doc.fillColor('white').fontSize(14).text(box.titulo, x + 15, y + 12);
+        doc.fontSize(18).text(String(box.valor), x + 150, y + 10);
+      });
+
+      doc.moveDown(7);
+      doc.fillColor(colorTexto).fontSize(12);
+      doc.text(`📘 Periodo: ${data.periodo}`);
+      doc.text(`🗓️ Fecha de generación: ${new Date().toLocaleDateString()}`);
+
+      // Línea separadora final
+      doc.moveDown(2);
+      doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor(colorSecundario).stroke();
+      doc.moveDown(1.5);
+
+      doc.fillColor(colorPrimario).fontSize(10)
+        .text('Reporte generado automáticamente por el Sistema de Planeación Institucional', { align: 'center' });
+    }
 
     doc.end();
     return;
   }
 
-  // 🔹 Excel
+  // ==========================================
+  // 🔹 EXPORTAR EN EXCEL
+  // ==========================================
   if (formato === 'excel') {
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Reporte General');
+    const sheet = workbook.addWorksheet('Reporte');
 
     sheet.addRow([`Reporte: ${nombre}`]);
     sheet.addRow([`Periodo: ${ciclo || 'General'}`]);
     sheet.addRow([]);
 
-    sheet.addRow(['Resumen General']);
-    Object.entries(data.resumenGeneral).forEach(([k, v]) => sheet.addRow([k, v]));
-    sheet.addRow([]);
+    if (data.tipo === 'institucional') {
+      sheet.addRow(['Resumen General']);
+      Object.entries(data.resumenGeneral || {}).forEach(([k, v]) => sheet.addRow([k, v]));
+      sheet.addRow([]);
 
-    sheet.addRow(['Totales']);
-    Object.entries(data.totales).forEach(([k, v]) => sheet.addRow([k, v]));
-    sheet.addRow([]);
+      sheet.addRow(['Totales']);
+      Object.entries(data.totales || {}).forEach(([k, v]) => sheet.addRow([k, v]));
+      sheet.addRow([]);
 
-    sheet.addRow(['Docentes']);
-    sheet.addRow(['Profesor', 'Planeaciones', 'Avances', 'Promedio Avance', 'Evidencias', 'Horas Capacitacion']);
-    data.docentes.forEach(p => {
-      sheet.addRow([
-        p.profesor,
-        p.totalPlaneaciones,
-        p.totalAvances,
-        p.promedioAvance,
-        p.totalEvidencias,
-        p.horasCapacitacion,
-      ]);
-    });
+      sheet.addRow(['Docentes']);
+      sheet.addRow(['Profesor', 'Planeaciones', 'Avances', 'Promedio Avance', 'Evidencias', 'Horas']);
+      data.docentes?.forEach(p => {
+        sheet.addRow([
+          p.profesor,
+          p.totalPlaneaciones,
+          p.totalAvances,
+          p.promedioAvance,
+          p.totalEvidencias,
+          p.horasCapacitacion,
+        ]);
+      });
+    } else if (data.tipo === 'profesor') {
+      sheet.addRow(['Profesor', data.profesor]);
+      sheet.addRow(['Periodo', data.periodo]);
+      sheet.addRow(['Planeaciones', data.planeaciones]);
+      sheet.addRow(['Avances', data.avances]);
+      sheet.addRow(['Evidencias', data.evidencias]);
+      sheet.addRow(['Promedio Avance', `${data.promedioAvance}%`]);
+    }
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=${nombre}.xlsx`);

@@ -213,30 +213,7 @@ const ReportesPage = () => {
         </div>
       )}
 
-      {/* 🔹 Mostrar reporte institucional */}
-      {!loading && activeTab === 'institucional' && reporteInstitucional && (
-        <div className="reporte-institucional">
-          {Object.entries(reporteInstitucional).map(([nombreDocente, datos]) => (
-            <div key={nombreDocente} className="docente-section">
-              <h2>👨‍🏫 {nombreDocente}</h2>
-              <p><strong>Planeaciones:</strong> {datos.totalPlaneaciones || 0}</p>
-              <p><strong>Avances:</strong> {datos.totalAvances || 0}</p>
-              <p><strong>Evidencias:</strong> {datos.totalEvidencias || 0}</p>
-              <hr />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 🔹 Mostrar reporte por profesor */}
-      {!loading && activeTab === 'profesor' && reporteProfesor && (
-        <div className="reporte-profesor">
-          <h2>👨‍🏫 {reporteProfesor.nombre}</h2>
-          <p><strong>Total Planeaciones:</strong> {reporteProfesor.totalPlaneaciones}</p>
-          <p><strong>Total Avances:</strong> {reporteProfesor.totalAvances}</p>
-          <p><strong>Total Evidencias:</strong> {reporteProfesor.totalEvidencias}</p>
-        </div>
-      )}
+      
 
       {!loading && activeTab === 'profesor' && !reporteProfesor && (
         <div className="empty-state">

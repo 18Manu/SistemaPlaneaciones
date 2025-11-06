@@ -1,26 +1,42 @@
-version: "3.9"
+version: "3.8"
 
 services:
-  mongo:
+  mongo_db:
     image: mongo:7
+    container_name: mongo_db
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
     volumes:
-      - mongo-data:/data/db
+      - mongo_data:/data/db
+    networks:
+      - app-network
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      MONGO_URI: mongodb://admin:admin123@mongo:27017/planeacion?authSource=admin
-    depends_on:
-      - mongo
+  backend:
+    build: ./backend
+    container_name: backend_app
     ports:
       - "4000:4000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongo_db
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend_app
+    ports:
+      - "3000:80"   # puerto local 3000 -> puerto interno 80 de NGINX
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
-  mongo-data:
+  mongo_data:
